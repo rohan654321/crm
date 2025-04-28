@@ -1,64 +1,85 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { Building, Target, Users, CheckCircle } from "lucide-react";
-import CircularProgress from "@/app/components/ui/CircularProgress";
+import { useState, useEffect } from "react"
+import { Building, Target, Users, CheckCircle } from "lucide-react"
+import CircularProgress from "@/app/components/ui/CircularProgress"
 
 interface Lead {
-  id: string;
-  status: string;
-  createdAt: string;
+  id: string
+  status: string
+  createdAt: string
 }
 
 interface Employee {
-  id: string;
-  name: string;
-  leads: Lead[];
+  id: string
+  name: string
+  leads: Lead[]
+  targetAmount?: number
 }
 
 interface Department {
-  id: string;
-  name: string;
-  target?: number;
-  totalLeads: number;
-  soldLeads: number;
-  employees?: Employee[];
+  id: string
+  name: string
+  target: number | null
+  totalLeads: number
+  soldLeads: number
+  employees?: Employee[]
 }
 
 interface DepartmentListProps {
-  employeeId: string;
+  employeeId: string
 }
 
 const DepartmentList = ({ employeeId }: DepartmentListProps) => {
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [employeeTarget, setEmployeeTarget] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const response = await fetch("/api/departments");
-        if (!response.ok) throw new Error("Failed to fetch department data");
-        const data: Department[] = await response.json();
+        const response = await fetch("/api/departments")
+        if (!response.ok) throw new Error("Failed to fetch department data")
+        const data: Department[] = await response.json()
 
-        const filteredDepartment = data.find((dept) =>
-          dept.employees?.some((emp) => emp.id === employeeId)
-        );
+        const filteredDepartment = data.find((dept) => dept.employees?.some((emp) => emp.id === employeeId))
 
-        setDepartments(filteredDepartment ? [filteredDepartment] : []);
+        setDepartments(filteredDepartment ? [filteredDepartment] : [])
+
+        // Find the employee and get their target amount
+        if (filteredDepartment && filteredDepartment.employees) {
+          const employee = filteredDepartment.employees.find((emp) => emp.id === employeeId)
+          if (employee && employee.targetAmount) {
+            setEmployeeTarget(employee.targetAmount)
+          }
+        }
       } catch (err) {
-        setError((err as Error).message);
+        setError((err as Error).message)
       }
-    };
-    fetchDepartments();
-  }, [employeeId]);
+    }
+
+    // Also fetch the employee directly to get their target amount
+    const fetchEmployee = async () => {
+      try {
+        const response = await fetch(`/api/employee-target?employeeId=${employeeId}`)
+        if (response.ok) {
+          const employee = await response.json()
+          if (employee && employee.targetAmount) {
+            setEmployeeTarget(employee.targetAmount)
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching employee target:", err)
+      }
+    }
+
+    fetchDepartments()
+    fetchEmployee()
+  }, [employeeId])
 
   return (
     <div className="space-y-6 p-4 md:p-8">
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-lg text-center">
-          {error}
-        </div>
-      )}
+      {error && <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-lg text-center">{error}</div>}
 
       {departments.length === 0 && !error ? (
         <div className="text-gray-500 text-center p-4">Loading...</div>
@@ -78,11 +99,11 @@ const DepartmentList = ({ employeeId }: DepartmentListProps) => {
               {/* Target */}
               <div className="flex flex-col items-center">
                 <CircularProgress
-                  value={dept.target ? 100 : 0}
-                  text={dept.target ? `${dept.target}` : "N/A"}
+                  value={employeeTarget ? 100 : 0}
+                  text={employeeTarget ? `${employeeTarget}` : "N/A"}
                 />
                 <div className="flex items-center gap-1 mt-2 text-xs md:text-sm text-gray-600">
-                  <Target size={16} className="text-blue-500" /> Target
+                  <Target size={16} className="text-blue-500" /> Your Target
                 </div>
               </div>
 
@@ -106,7 +127,7 @@ const DepartmentList = ({ employeeId }: DepartmentListProps) => {
         ))
       )}
     </div>
-  );
-};
+  )
+}
 
-export default DepartmentList;
+export default DepartmentList

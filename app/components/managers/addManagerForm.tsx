@@ -6,7 +6,7 @@ import { User, Mail, Lock, Building2, CheckCircle } from "lucide-react";
 type Department = {
   id: string;
   name: string;
-};
+}; 
 
 export default function ManagerForm() {
   const [name, setName] = useState("");
