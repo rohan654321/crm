@@ -9,10 +9,12 @@ type Employee = {
   id: string;
   name: string;
   email: string;
-  password?: string; // Password is optional
+  password?: string;
   role: string;
   departmentId: string;
+  targetAmount?: number; // <-- Add this
 };
+
 
 export default function UpdateEmployee({ employeeId, onClose }: { employeeId: string; onClose: () => void }) {
   const [employee, setEmployee] = useState<Employee | null>(null);
@@ -78,11 +80,13 @@ const handleUpdate = async (e: React.FormEvent) => {
       email: employee.email,
       role: employee.role,
       departmentId: employee.departmentId,
+      targetAmount: employee.targetAmount ?? undefined, // Include it here
     };
-  
+    
     if (employee.password) {
       updateData.password = employee.password;
     }
+    
   
     try {
       const response = await fetch(`/api/updateEmployee/${employeeId}`, {
@@ -187,6 +191,18 @@ const handleUpdate = async (e: React.FormEvent) => {
             ))}
           </select>
         </div>
+        <div className="relative">
+  <input
+    type="text"
+    value={employee.targetAmount ?? ""}
+    onChange={(e) =>
+      setEmployee({ ...employee, targetAmount: parseFloat(e.target.value) })
+    }
+    className="w-full p-2 pl-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+    placeholder="Enter target amount (optional)"
+  />
+</div>
+
 
         <div className="flex gap-4">
           <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition duration-200">

@@ -1,50 +1,54 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt"; // ✅ Import bcrypt
 
 const prisma = new PrismaClient();
 
-export async function PUT(
-  req: NextRequest,
-  context: { params: Promise<{ id: string }> } // ✅ Ensure params is a Promise
-) {
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
-    const resolvedParams = await context.params; // ✅ Await params
-    const { id } = resolvedParams;
+    const { id } = params;  // Destructure the 'id' from params
+    const body = await request.json();  // Parse the request body
 
-    if (!id) {
-      return NextResponse.json({ message: "Employee ID is required" }, { status: 400 });
+    // Validate required fields
+    if (!body.name || !body.email) {
+      return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
     }
 
-    const body = await req.json();
-    if (!body || Object.keys(body).length === 0) {
-      return NextResponse.json({ message: "No data provided for update" }, { status: 400 });
+    // Prepare update data
+    const updateData: any = {
+      name: body.name,
+      email: body.email,
+    };
+
+    // Add optional fields if provided
+    if (body.role) {
+      updateData.role = body.role;
     }
 
-    // ✅ Hash password if provided
-    if (body.password) {
-      const saltRounds = 10;
-      body.password = await bcrypt.hash(body.password, saltRounds);
+    // Handle department connection if provided
+    if (body.department) {
+      updateData.department = {
+        connect: {
+          id: body.department,
+        },
+      };
     }
 
-    // ✅ Update employee in the database
-    const updatedEmployee = await prisma.employee.update({
+    // Update the employee
+    const employee = await prisma.employee.update({
       where: { id },
-      data: body,
+      data: updateData,
     });
 
-    return NextResponse.json(updatedEmployee, { status: 200 });
-  } catch (error) {
-    console.error("❌ Error updating employee:", error);
+    return NextResponse.json(employee);
+  } catch (error: any) {
+    console.error("Error updating employee:", error);
 
-    // ✅ Proper error handling
-    if (error instanceof Error) {
-      if ("code" in error && error.code === "P2025") {
-        return NextResponse.json({ message: "Employee not found" }, { status: 404 });
-      }
-      return NextResponse.json({ message: error.message || "Internal server error" }, { status: 500 });
+    // Handle "not found" error
+    if (error.code === "P2025") {
+      return NextResponse.json({ message: "Employee not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+    // Handle other errors
+    return NextResponse.json({ message: error.message || "Internal server error" }, { status: 500 });
   }
 }
