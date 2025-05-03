@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
@@ -14,6 +14,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 
     // Prepare update data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {
       name: body.name,
       email: body.email,
@@ -40,6 +41,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     });
 
     return NextResponse.json(employee);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error updating employee:", error);
 
